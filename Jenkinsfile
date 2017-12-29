@@ -44,7 +44,9 @@ node('master') {
         dockerCmd 'run -d -p 9999:9999 --name "snapshot" --network="host" automatingguy/sparktodo:SNAPSHOT'
 
         dir('tests/bobcat') {
-            bobcat params: '-Dwebdriver.type=remote -Dwebdriver.url=http://localhost:4444/wd/hub -Dwebdriver.cap.browserName=chrome'
+            withMaven(maven: 'Maven 3') {
+                bobcat params: '-Dwebdriver.type=remote -Dwebdriver.url=http://localhost:4444/wd/hub -Dwebdriver.cap.browserName=chrome'
+            }
         }
 
         dockerCmd 'rm -f snapshot'
