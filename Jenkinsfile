@@ -36,12 +36,16 @@ node('master') {
     }
 
     stage('Tests') {
-        restAssured artifactsPath: 'tests/rest-assured'
+        dir('tests/rest-assured') {
+            restAssured()
+        }
 
         dockerCmd 'rm -f snapshot'
         dockerCmd 'run -d -p 9999:9999 --name "snapshot" --network="host" automatingguy/sparktodo:SNAPSHOT'
 
-        bobcat params: '-Dwebdriver.type=remote -Dwebdriver.url=http://localhost:4444/wd/hub -Dwebdriver.cap.browserName=chrome', artifactsPath: 'tests/bobcat'
+        dir('tests/bobcat') {
+            bobcat params: '-Dwebdriver.type=remote -Dwebdriver.url=http://localhost:4444/wd/hub -Dwebdriver.cap.browserName=chrome'
+        }
 
         dockerCmd 'rm -f snapshot'
         dockerCmd 'stop zalenium'
