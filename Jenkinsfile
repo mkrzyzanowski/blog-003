@@ -1,10 +1,11 @@
 #!groovy
 
+@Library('ag-library@master') _
+
 def releasedVersion
 
 node('master') {
-  def dockerTool = tool name: 'docker', type: 'org.jenkinsci.plugins.docker.commons.tools.DockerTool'
-  withEnv(["DOCKER=${dockerTool}/bin"]) {
+  withDocker {
     stage('Prepare') {
         deleteDir()
         parallel Checkout: {
@@ -35,28 +36,12 @@ node('master') {
     }
 
     stage('Tests') {
-        try {
-            dir('tests/rest-assured') {
-                sh './gradlew clean test'
-            }
-        } finally {
-            junit testResults: 'tests/rest-assured/build/*.xml', allowEmptyResults: true
-            archiveArtifacts 'tests/rest-assured/build/**'
-        }
+        restAssured artifactsPath: 'tests/rest-assured'
 
         dockerCmd 'rm -f snapshot'
         dockerCmd 'run -d -p 9999:9999 --name "snapshot" --network="host" automatingguy/sparktodo:SNAPSHOT'
 
-        try {
-            withMaven(maven: 'Maven 3') {
-                dir('tests/bobcat') {
-                    sh 'mvn clean test -Dmaven.test.failure.ignore=true'
-                }
-            }
-        } finally {
-            junit testResults: 'tests/bobcat/target/*.xml', allowEmptyResults: true
-            archiveArtifacts 'tests/bobcat/target/**'
-        }
+        bobcat params: '-Dwebdriver.type=remote -Dwebdriver.url=http://localhost:4444/wd/hub -Dwebdriver.cap.browserName=chrome', artifactsPath: 'tests/bobcat'
 
         dockerCmd 'rm -f snapshot'
         dockerCmd 'stop zalenium'
@@ -67,10 +52,7 @@ node('master') {
         withMaven(maven: 'Maven 3') {
             dir('app') {
                 releasedVersion = getReleasedVersion()
-                withCredentials([usernamePassword(credentialsId: 'github', passwordVariable: 'password', usernameVariable: 'username')]) {
-                    sh "git config user.email test@automatingguy.com && git config user.name Jenkins"
-                    sh "mvn release:prepare release:perform -Dusername=${username} -Dpassword=${password}"
-                }
+                release credentials: 'github', email: 'test@automatingguy.com'
                 dockerCmd "build --tag automatingguy/sparktodo:${releasedVersion} ."
             }
         }
@@ -80,12 +62,4 @@ node('master') {
         dockerCmd "run -d -p 9999:9999 --name 'production' automatingguy/sparktodo:${releasedVersion}"
     }
   }
-}
-
-def dockerCmd(args) {
-    sh "sudo ${DOCKER}/docker ${args}"
-}
-
-def getReleasedVersion() {
-    return (readFile('pom.xml') =~ '<version>(.+)-SNAPSHOT</version>')[0][1]
 }
