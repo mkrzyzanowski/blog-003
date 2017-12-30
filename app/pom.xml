@@ -4,11 +4,11 @@
 
     <groupId>spark-intercooler</groupId>
     <artifactId>spark-intercooler</artifactId>
-    <version>1.4-SNAPSHOT</version>
+    <version>1.4</version>
 
     <scm>
         <developerConnection>scm:git:https://github.com/mkrzyzanowski/blog-003.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>spark-intercooler-1.4</tag>
     </scm>
 
     <build>
