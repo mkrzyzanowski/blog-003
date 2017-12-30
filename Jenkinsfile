@@ -65,7 +65,7 @@ node('master') {
     }
 
     stage('Deploy @ Prod') {
-        dockerCmd "run -d -p 9999:9999 --name 'production' automatingguy/sparktodo:${releasedVersion}"
+        dockerCmd "run -d -p 12345:12345 --network='host' --name 'production' automatingguy/sparktodo:${releasedVersion}"
     }
   }
 }
